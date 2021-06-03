@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import init from 'react_native_mqtt';
 import Dialog from "react-native-dialog";
 import { Tooltip } from 'react-native-elements';
-import { StyleSheet, View, AsyncStorage, Text, ScrollView } from 'react-native';
+import { StyleSheet, View, AsyncStorage, Text, ScrollView, Pressable } from 'react-native';
 
 import { Piano } from 'react-native-piano';
 
@@ -120,9 +120,32 @@ export default function App() {
     }
 
     const json = JSON.stringify({
-      note,
+      note: [note],
       name: nickname,
       date: new Date(),
+    }); 
+
+    const message = new Paho.MQTT.Message(json);
+    message.destinationName = "IDKWhatImDoingHere";
+    client.send(message);
+  }
+
+  const deleteNotes = () => {
+    fetch('https://piano-server.herokuapp.com/notes/delete')
+    .then(res => res.json())
+    .then(data => setGlobalNotes([]))
+    .catch(e => console.log(e));
+  }
+
+  const playNotes = () => {
+
+    let arr = globalNotes.map((item) => item.note).flat();
+
+    const json = JSON.stringify({
+      note: arr,
+      name: nickname,
+      date: new Date(),
+      type: 'play',
     }); 
 
     const message = new Paho.MQTT.Message(json);
@@ -141,19 +164,29 @@ export default function App() {
         <Dialog.Button label="Ok" onPress={ closeModalInput }/>
       </Dialog.Container>
       <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.notes} horizontal={true}>
-          {
-            globalNotes.map((some, index) => (
-              <Tooltip key={index} popover={<Text>{ some.name }</Text>} onOpen={checkNote}>
-                <View style={styles.noteContainer}>
-                  <Text>
-                    { some.note }
-                  </Text>
-                </View>
-              </Tooltip>
-            ))
-          }
-        </ScrollView>
+        <View style={{flexDirection: 'row', height: '20%'}}>
+          <View style={styles.buttonsC}>
+              <Pressable style={ styles.btn } onPress={deleteNotes}>
+                <Text style={{color: '#fff'}}>Borrar</Text>
+              </Pressable>
+              <Pressable style={ styles.btn } onPress={playNotes}>
+                <Text style={{color: '#fff'}}>Play</Text>
+              </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={styles.notes} horizontal={true}>
+            {
+              globalNotes.map((some, index) => (
+                <Tooltip key={index} popover={<Text>{ some.name }</Text>} onOpen={checkNote}>
+                  <View style={styles.noteContainer}>
+                    <Text>
+                      { some.note }
+                    </Text>
+                  </View>
+                </Tooltip>
+              ))
+            }
+          </ScrollView>
+        </View>
         <Piano 
           noteRange={rage} 
           onPlayNoteInput={onPlayNoteInput}
@@ -180,6 +213,18 @@ const styles = StyleSheet.create({
     padding: 20,
     marginLeft: 10,
     borderRadius: 20,
+    backgroundColor: '#64b5f6'
+  },
+  buttonsC: {
+    width: 200,
+    flexDirection: 'row'
+  },
+  btn: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    marginLeft: 10,
+    borderRadius: 10,
     backgroundColor: '#64b5f6'
   }
 });
